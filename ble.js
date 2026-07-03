@@ -35,11 +35,11 @@ export class BLEManager {
 
             if (this.role === 'TX') {
                 // Browser is transmitting TO the ESP32
-                this.txCharacteristic = await this.service.getCharacteristic(CONFIG.BLE.RX_CHARACTERISTIC);
+                this.txCharacteristic = await this.service.getCharacteristic(CONFIG.BLE.TX_CHARACTERISTIC);
                 Logger.info(`BLE_${this.role}`, `TX Characteristic acquired.`);
             } else {
                 // Browser is receiving FROM the ESP32
-                this.rxCharacteristic = await this.service.getCharacteristic(CONFIG.BLE.TX_CHARACTERISTIC);
+                this.rxCharacteristic = await this.service.getCharacteristic(CONFIG.BLE.RX_CHARACTERISTIC);
                 await this.rxCharacteristic.startNotifications();
                 this.rxCharacteristic.addEventListener('characteristicvaluechanged', this.handleCharacteristicValueChanged.bind(this));
                 Logger.info(`BLE_${this.role}`, `RX Notifications started.`);
