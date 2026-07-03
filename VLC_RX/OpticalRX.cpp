@@ -1,5 +1,4 @@
 #include "OpticalRX.h"
-#include "driver/uart.h"
 
 OpticalRX::OpticalRX(int rxPin, uint32_t baudRate) {
     _rxPin = rxPin;
@@ -22,15 +21,12 @@ size_t OpticalRX::readData(uint8_t* buffer, size_t maxLen) {
         buffer[len++] = Serial1.read();
     }
 
-    // Check for UART hardware errors
-    uint32_t uartErrors = 0;
-    uart_get_buffered_data_len(UART_NUM_1, &uartErrors);
-
-    // Detect potential overflow: if hardware buffer is near capacity
-    if (Serial1.available() > 3072) { // 75% of 4096
+    // Detect potential overflow: if hardware buffer is near capacity (75% of 4096)
+    int remaining = Serial1.available();
+    if (remaining > 3072) {
         overflowCount++;
         Serial.printf("[OpticalRX] WARNING: UART buffer near overflow! Available: %d, Overflow count: %d\n",
-                       Serial1.available(), overflowCount);
+                       remaining, overflowCount);
     }
 
     return len;
