@@ -38,7 +38,7 @@ export const CONFIG = {
     // Transfer Settings
     TRANSFER: {
         RX_TIMEOUT_MS: 3000,   // How long to wait before declaring transfer failed on RX
-        TX_DELAY_MS: 5,        // Delay between BLE packet writes to prevent stack overflow
+        TX_DELAY_MS: 25,       // Delay matched to 115200 baud to prevent ESP32 buffer overflow
     },
 
     // Logging Configuration
