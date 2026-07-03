@@ -15,10 +15,10 @@ void OpticalTX::begin() {
 
 void OpticalTX::writeData(const uint8_t* data, size_t length) {
     Serial1.write(data, length);
-    // Flush ensures all bytes are physically transmitted before returning.
-    // This provides an implicit inter-packet gap (UART idle line between packets)
-    // which helps the receiver's SYNC detection avoid false-locking on payload bytes.
-    Serial1.flush();
+    
+    // Note: Serial1.flush() was removed here because on some ESP32 core versions,
+    // calling flush() repeatedly can interfere with the inverted UART pin state 
+    // or cause the hardware FIFO to abort transmission prematurely.
 
     totalBytesSent += length;
     totalPacketsSent++;

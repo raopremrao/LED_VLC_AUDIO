@@ -10,7 +10,7 @@
 
 // Configuration
 const int PHOTODIODE_PIN = 34;
-const int OPTICAL_BAUD = 115200;
+const int OPTICAL_BAUD = 1000; // 1000 baud = 1 millisecond per bit!
 #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_UUID_TX "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
 
@@ -99,6 +99,15 @@ void TaskOpticalRX(void *pvParameters) {
 
             Serial.printf("[RX] Photodiode: %d bytes (total: %d bytes)\n", len, totalOpticalBytesRead);
 
+            // Hex dump first 512 bytes for diagnostics — helps identify noise vs real data
+            if (totalOpticalBytesRead <= 512) {
+                Serial.print("[HEX] ");
+                for (size_t h = 0; h < len && h < 32; h++) {
+                    Serial.printf("%02X ", readBuf[h]);
+                }
+                Serial.println();
+            }
+
             for (size_t i = 0; i < len; i++) {
                 if (packetDecoder->processByte(readBuf[i], &parsedPacket)) {
                     Serial.printf("[RX] VALID PACKET! Type: %d, Seq: %d, Len: %d (Total valid: %d)\n",
@@ -178,6 +187,7 @@ void TaskBLE_TX(void *pvParameters) {
 
 void setup() {
     Serial.begin(115200);
+    delay(1000); // Wait for Serial to be ready
     Serial.println("====================================");
     Serial.println("[INFO] Booting VLC_RX Pro...");
     Serial.println("====================================");
