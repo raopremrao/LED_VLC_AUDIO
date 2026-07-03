@@ -83,6 +83,35 @@ void TaskOpticalRX(void *pvParameters) {
                     qBuf[1] = totalLen & 0xFF;
                     memcpy(&qBuf[2], bleBuffer, totalLen);
                     
+                    
+                    bleTxQueue->enqueue(qBuf);
+                } else if (packetDecoder->hasCrcError()) {
+                    packetDecoder->clearCrcError();
+                    
+                    const char* msg = "CRC Failed! Optical noise detected.";
+                    size_t msgLen = strlen(msg);
+                    uint8_t bleBuffer[256];
+                    bleBuffer[0] = 0xAA;
+                    bleBuffer[1] = 0x55;
+                    bleBuffer[2] = 1;
+                    bleBuffer[3] = 7; // ERROR type
+                    bleBuffer[4] = 0;
+                    bleBuffer[5] = 0;
+                    bleBuffer[6] = 0;
+                    bleBuffer[7] = (msgLen >> 8) & 0xFF;
+                    bleBuffer[8] = msgLen & 0xFF;
+                    memcpy(&bleBuffer[9], msg, msgLen);
+                    
+                    uint16_t crc = CRC16::calculate(&bleBuffer[2], 7 + msgLen);
+                    bleBuffer[9 + msgLen] = (crc >> 8) & 0xFF;
+                    bleBuffer[9 + msgLen + 1] = crc & 0xFF;
+                    
+                    size_t totalLen = 9 + msgLen + 2;
+                    uint8_t qBuf[258];
+                    qBuf[0] = (totalLen >> 8) & 0xFF;
+                    qBuf[1] = totalLen & 0xFF;
+                    memcpy(&qBuf[2], bleBuffer, totalLen);
+                    
                     bleTxQueue->enqueue(qBuf);
                 }
             }

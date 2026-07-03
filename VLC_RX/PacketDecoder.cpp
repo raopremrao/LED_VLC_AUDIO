@@ -6,6 +6,7 @@ PacketDecoder::PacketDecoder() {
     _state = SYNC1;
     _bufferIndex = 0;
     _expectedLength = 0;
+    _crcError = false;
 }
 
 bool PacketDecoder::processByte(uint8_t b, ParsedPacket* outPacket) {
@@ -77,6 +78,7 @@ bool PacketDecoder::processByte(uint8_t b, ParsedPacket* outPacket) {
                     return true;
                 } else {
                     Serial.printf("[PacketDecoder] CRC FAILED! Calc: %04X, Recv: %04X, Len: %d\n", calculatedCrc, receivedCrc, _expectedLength);
+                    _crcError = true;
                 }
                 
                 _state = SYNC1; // CRC Failed

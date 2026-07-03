@@ -163,6 +163,9 @@ class TransferManager {
             this.processRxData(header, payload);
         } else if (header.type === CONFIG.TYPES.FILE_END) {
             this.finishRxSession(header, payload);
+        } else if (header.type === CONFIG.TYPES.ERROR) {
+            const decoder = new TextDecoder();
+            Logger.error('RX_ESP32', decoder.decode(payload));
         }
     }
 
