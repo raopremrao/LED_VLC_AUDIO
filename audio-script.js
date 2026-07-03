@@ -325,10 +325,16 @@ class TransferManager {
     }
 
     downloadReceivedFile() {
-        if (this.rxBlob && this.rxMeta) {
-            Logger.info('RX', `Downloading: "${this.rxMeta.name}" (${Utils.formatBytes(this.rxBlob.size)})`);
-            Utils.downloadBlob(this.rxBlob, this.rxMeta.name);
+        if (!this.rxMeta || this.rxChunks.length === 0) {
+            Logger.warn('RX', 'No data available to download.');
+            return;
         }
+        
+        // Build the blob dynamically if it hasn't been finalized yet
+        const blobToDownload = this.rxBlob || new Blob(this.rxChunks, { type: this.rxMeta.type });
+        
+        Logger.info('RX', `Downloading: "${this.rxMeta.name}" (${Utils.formatBytes(blobToDownload.size)}) [Force Partial]`);
+        Utils.downloadBlob(blobToDownload, this.rxMeta.name);
     }
 
     resetRxTimeout() {
