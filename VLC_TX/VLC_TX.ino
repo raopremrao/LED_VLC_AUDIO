@@ -8,7 +8,7 @@
 
 // Configuration
 const int LASER_PIN = 2;
-const int OPTICAL_BAUD = 9600; // 1000 baud = 1 millisecond per bit!
+const int OPTICAL_BAUD = 4800; 
 #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_UUID_RX "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
 
