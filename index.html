@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VLC Digital Data Link - Pro Edition</title>
+    <title>VLC Digital Data Link Pro Edition</title>
     <style>
         :root {
             --bg-color: #0b141a;
@@ -17,53 +18,83 @@
             --border: #2a3942;
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: var(--bg-color); 
-            color: var(--text-main); 
-            margin: 0; 
-            padding: 20px; 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
             display: flex;
             justify-content: center;
         }
 
-        .container { 
+        .container {
             width: 100%;
-            max-width: 800px; 
+            max-width: 800px;
             background: var(--panel-bg);
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
             overflow: hidden;
             border: 1px solid var(--border);
         }
 
-        .header { 
-            text-align: center; 
+        .header {
+            text-align: center;
             padding: 20px;
             border-bottom: 1px solid var(--border);
             background: var(--card-bg);
         }
-        
-        .header h1 { margin: 0; color: var(--accent); font-size: 24px; font-weight: 600; }
-        .header p { margin: 5px 0 0 0; color: var(--text-muted); font-size: 14px; }
 
-        .tabs { display: flex; border-bottom: 1px solid var(--border); }
-        .tab { 
-            flex: 1; 
-            text-align: center; 
-            padding: 15px; 
-            cursor: pointer; 
-            color: var(--text-muted); 
+        .header h1 {
+            margin: 0;
+            color: var(--accent);
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            cursor: pointer;
+            color: var(--text-muted);
             font-weight: 600;
             transition: all 0.2s;
         }
-        .tab:hover { background: rgba(255,255,255,0.05); }
-        .tab.active { color: var(--accent); border-bottom: 3px solid var(--accent); background: rgba(0, 168, 132, 0.05); }
-        
-        .panel { display: none; padding: 25px; }
-        .panel.active { display: block; }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab.active {
+            color: var(--accent);
+            border-bottom: 3px solid var(--accent);
+            background: rgba(0, 168, 132, 0.05);
+        }
+
+        .panel {
+            display: none;
+            padding: 25px;
+        }
+
+        .panel.active {
+            display: block;
+        }
 
         .control-group {
             background: var(--card-bg);
@@ -73,13 +104,13 @@
             border: 1px solid var(--border);
         }
 
-        .btn { 
-            background: var(--accent); 
-            color: var(--bg-color); 
-            border: none; 
-            padding: 12px 20px; 
-            border-radius: 6px; 
-            cursor: pointer; 
+        .btn {
+            background: var(--accent);
+            color: var(--bg-color);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
             font-weight: bold;
             font-size: 14px;
             transition: background 0.2s;
@@ -88,15 +119,26 @@
             justify-content: center;
             gap: 8px;
         }
-        .btn:hover { background: var(--accent-hover); }
-        .btn:disabled { background: #334; color: #667; cursor: not-allowed; }
-        
+
+        .btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn:disabled {
+            background: #334;
+            color: #667;
+            cursor: not-allowed;
+        }
+
         .btn-outline {
             background: transparent;
             color: var(--text-main);
             border: 1px solid var(--border);
         }
-        .btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
 
         .status-badge {
             display: inline-block;
@@ -112,7 +154,7 @@
         .file-input-wrapper {
             margin: 20px 0;
         }
-        
+
         input[type="file"] {
             display: block;
             width: 100%;
@@ -124,7 +166,12 @@
             cursor: pointer;
         }
 
-        .progress-text { margin-top: 15px; color: var(--accent); font-weight: 500; font-size: 15px; }
+        .progress-text {
+            margin-top: 15px;
+            color: var(--accent);
+            font-weight: 500;
+            font-size: 15px;
+        }
 
         .console-wrapper {
             margin-top: 20px;
@@ -132,6 +179,7 @@
             border-radius: 8px;
             overflow: hidden;
         }
+
         .console-header {
             background: var(--card-bg);
             padding: 10px 15px;
@@ -142,17 +190,20 @@
             font-size: 13px;
             font-weight: bold;
         }
-        .console { 
-            background: var(--bg-color); 
-            padding: 15px; 
-            height: 250px; 
-            overflow-y: auto; 
-            font-family: 'Consolas', 'Courier New', monospace; 
+
+        .console {
+            background: var(--bg-color);
+            padding: 15px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
             font-size: 13px;
             line-height: 1.5;
         }
 
-        .hidden { display: none; }
+        .hidden {
+            display: none;
+        }
 
         /* Custom Audio Player Styling */
         audio {
@@ -162,70 +213,85 @@
             border-radius: 6px;
             outline: none;
         }
-        audio::-webkit-media-controls-panel { background-color: var(--card-bg); }
+
+        audio::-webkit-media-controls-panel {
+            background-color: var(--card-bg);
+        }
+
         audio::-webkit-media-controls-play-button,
-        audio::-webkit-media-controls-mute-button { filter: invert(1); }
+        audio::-webkit-media-controls-mute-button {
+            filter: invert(1);
+        }
+
         audio::-webkit-media-controls-current-time-display,
-        audio::-webkit-media-controls-time-remaining-display { color: var(--text-main); }
+        audio::-webkit-media-controls-time-remaining-display {
+            color: var(--text-main);
+        }
     </style>
 </head>
+
 <body>
 
-<div class="container">
-    <div class="header">
-        <h1>VLC Data Link - Pro</h1>
-        <p>Reliable File Transfer over Optical UART</p>
-    </div>
+    <div class="container">
+        <div class="header">
+            <h1>VLC Data Link - Pro</h1>
+            <p>Reliable File Transfer over Optical UART</p>
+        </div>
 
-    <div class="tabs">
-        <div id="tab-tx" class="tab active">Transmitter (TX)</div>
-        <div id="tab-rx" class="tab">Receiver (RX)</div>
-    </div>
+        <div class="tabs">
+            <div id="tab-tx" class="tab active">Transmitter (TX)</div>
+            <div id="tab-rx" class="tab">Receiver (RX)</div>
+        </div>
 
-    <div id="panel-tx" class="panel active">
-        <div class="control-group">
-            <button class="btn" id="btn-conn-tx">Connect TX ESP32</button>
-            <span class="status-badge" id="status-tx">Status: Disconnected</span>
-            
-            <div class="file-input-wrapper">
-                <label style="display:block; margin-bottom:8px; color:var(--text-muted); font-size:14px;">Select file to transmit:</label>
-                <input type="file" id="file-input">
+        <div id="panel-tx" class="panel active">
+            <div class="control-group">
+                <button class="btn" id="btn-conn-tx">Connect TX ESP32</button>
+                <span class="status-badge" id="status-tx">Status: Disconnected</span>
+
+                <div class="file-input-wrapper">
+                    <label style="display:block; margin-bottom:8px; color:var(--text-muted); font-size:14px;">Select
+                        file to transmit:</label>
+                    <input type="file" id="file-input">
+                </div>
+
+                <button class="btn" id="btn-stream" disabled style="width: 100%;">Start Reliable Transfer</button>
+                <div class="progress-text" id="stream-progress">Ready.</div>
             </div>
-            
-            <button class="btn" id="btn-stream" disabled style="width: 100%;">Start Reliable Transfer</button>
-            <div class="progress-text" id="stream-progress">Ready.</div>
+        </div>
+
+        <div id="panel-rx" class="panel hidden">
+            <div class="control-group">
+                <button class="btn" id="btn-conn-rx">Connect RX ESP32</button>
+                <span class="status-badge" id="status-rx">Status: Disconnected</span>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <h3 style="color: var(--text-muted); margin-bottom: 10px;">Receiver Status</h3>
+                    <div class="progress-text" id="rx-buffer-status" style="font-size: 18px;">Standby for Incoming
+                        Connection...</div>
+                </div>
+
+                <div id="rx-controls" class="hidden"
+                    style="margin-top: 25px; text-align: center; padding-top: 20px; border-top: 1px solid var(--border);">
+                    <audio id="audio-player" controls style="display: none;"></audio>
+                    <button class="btn btn-outline" id="btn-download" style="margin-top: 15px;">Download File</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Console -->
+        <div style="padding: 0 25px 25px 25px;">
+            <div class="console-wrapper">
+                <div class="console-header">
+                    <span>System Logs</span>
+                    <button class="btn btn-outline" id="btn-clear-logs"
+                        style="padding: 4px 8px; font-size: 11px;">Clear</button>
+                </div>
+                <div class="console" id="console"></div>
+            </div>
         </div>
     </div>
 
-    <div id="panel-rx" class="panel hidden">
-        <div class="control-group">
-            <button class="btn" id="btn-conn-rx">Connect RX ESP32</button>
-            <span class="status-badge" id="status-rx">Status: Disconnected</span>
-            
-            <div style="margin-top: 20px; text-align: center;">
-                <h3 style="color: var(--text-muted); margin-bottom: 10px;">Receiver Status</h3>
-                <div class="progress-text" id="rx-buffer-status" style="font-size: 18px;">Standby for Incoming Connection...</div>
-            </div>
-
-            <div id="rx-controls" class="hidden" style="margin-top: 25px; text-align: center; padding-top: 20px; border-top: 1px solid var(--border);">
-                <audio id="audio-player" controls style="display: none;"></audio>
-                <button class="btn btn-outline" id="btn-download" style="margin-top: 15px;">Download File</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Global Console -->
-    <div style="padding: 0 25px 25px 25px;">
-        <div class="console-wrapper">
-            <div class="console-header">
-                <span>System Logs</span>
-                <button class="btn btn-outline" id="btn-clear-logs" style="padding: 4px 8px; font-size: 11px;">Clear</button>
-            </div>
-            <div class="console" id="console"></div>
-        </div>
-    </div>
-</div>
-
-<script type="module" src="audio-script.js"></script>
+    <script type="module" src="audio-script.js"></script>
 </body>
+
 </html>
