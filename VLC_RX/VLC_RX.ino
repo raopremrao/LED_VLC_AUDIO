@@ -6,6 +6,7 @@
 #include "QueueManager.h"
 #include "OpticalRX.h"
 #include "PacketDecoder.h"
+#include "CRC16.h"
 
 // Configuration
 const int PHOTODIODE_PIN = 34;
