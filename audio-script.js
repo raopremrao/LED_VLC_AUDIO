@@ -42,6 +42,7 @@ class TransferManager {
         document.getElementById('file-input').addEventListener('change', (e) => this.handleFileSelect(e));
         document.getElementById('btn-stream').addEventListener('click', () => this.startTransmission());
         document.getElementById('btn-download').addEventListener('click', () => this.downloadReceivedFile());
+        document.getElementById('btn-force-download').addEventListener('click', () => this.downloadReceivedFile());
 
         document.getElementById('btn-clear-logs').addEventListener('click', () => Logger.clear());
     }
