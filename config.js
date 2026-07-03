@@ -35,9 +35,9 @@ export const CONFIG = {
 
     // Transfer Settings
     TRANSFER: {
-        RX_TIMEOUT_MS: 60000,       // Very slow transfer, increase timeout
-        BASE_TX_DELAY_MS: 2600,     // 2.6 seconds per packet at 1000 baud
-        MAX_TX_DELAY_MS: 3000,      // Max delay under backpressure
+        RX_TIMEOUT_MS: 30000,       
+        BASE_TX_DELAY_MS: 260,      // 260ms per packet at 9600 baud
+        MAX_TX_DELAY_MS: 1000,      // Max delay under backpressure
         MAX_WRITE_QUEUE: 50,       // Max queued BLE writes before backpressure kicks in
         MAX_RETRIES: 3,            // BLE write retry attempts before dropping
     },

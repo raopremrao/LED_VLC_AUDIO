@@ -10,7 +10,7 @@
 
 // Configuration
 const int PHOTODIODE_PIN = 34;
-const int OPTICAL_BAUD = 1000; // 1000 baud = 1 millisecond per bit!
+const int OPTICAL_BAUD = 9600; 
 #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_UUID_TX "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
 
