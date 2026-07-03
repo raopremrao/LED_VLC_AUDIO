@@ -1,5 +1,6 @@
 #include "PacketDecoder.h"
 #include "CRC16.h"
+#include <Arduino.h>
 
 PacketDecoder::PacketDecoder() {
     _state = SYNC1;
@@ -74,6 +75,8 @@ bool PacketDecoder::processByte(uint8_t b, ParsedPacket* outPacket) {
                     
                     _state = SYNC1;
                     return true;
+                } else {
+                    Serial.printf("[PacketDecoder] CRC FAILED! Calc: %04X, Recv: %04X, Len: %d\n", calculatedCrc, receivedCrc, _expectedLength);
                 }
                 
                 _state = SYNC1; // CRC Failed

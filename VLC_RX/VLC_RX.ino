@@ -40,8 +40,13 @@ void TaskOpticalRX(void *pvParameters) {
     for (;;) {
         if (opticalRx->available()) {
             size_t len = opticalRx->readData(readBuf, sizeof(readBuf));
+            
+            // Print out how many bytes hit the photodiode (even if garbage)
+            Serial.printf("[RX] Photodiode detected %d bytes\n", len);
+            
             for (size_t i = 0; i < len; i++) {
                 if (packetDecoder->processByte(readBuf[i], &parsedPacket)) {
+                    Serial.printf("[RX] SUCCESS! Valid packet decoded. Seq: %d\n", parsedPacket.sequence);
                     // Valid packet successfully reconstructed from optical stream.
                     // Push to BLE Queue to be sent to browser.
                     // We must rebuild the raw bytes for the browser to parse (including headers).
