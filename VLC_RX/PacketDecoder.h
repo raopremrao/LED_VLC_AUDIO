@@ -22,20 +22,26 @@ typedef struct {
 class PacketDecoder {
 public:
     PacketDecoder();
-    
+
     // Feed one byte into the state machine. Returns true if a full valid packet was decoded.
     bool processByte(uint8_t b, ParsedPacket* outPacket);
-    
+
     bool hasCrcError() const { return _crcError; }
     void clearCrcError() { _crcError = false; }
+
+    // Link quality statistics
+    uint32_t validPackets;
+    uint32_t crcErrors;
+    uint32_t invalidHeaders;
+    uint32_t syncSearchBytes;  // Bytes consumed searching for SYNC
 
 private:
     enum State { SYNC1, SYNC2, HEADER, PAYLOAD };
     State _state;
-    
+
     uint8_t _buffer[RX_BUFFER_SIZE];
     uint16_t _bufferIndex;
-    
+
     uint16_t _expectedLength;
     bool _crcError;
 };

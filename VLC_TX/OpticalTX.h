@@ -9,6 +9,10 @@ public:
     void begin();
     void writeData(const uint8_t* data, size_t length);
 
+    // Statistics
+    uint32_t totalBytesSent;
+    uint32_t totalPacketsSent;
+
 private:
     int _txPin;
     uint32_t _baudRate;

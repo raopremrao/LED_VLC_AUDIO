@@ -38,17 +38,27 @@ export class PacketBuilder {
         const nameBytes = encoder.encode(filename);
         const mimeBytes = encoder.encode(mimeType);
 
-        // Payload structure: FileSize(4) + TotalPackets(4) + NameLen(1) + Name + MimeLen(1) + Mime
-        const payload = new Uint8Array(4 + 4 + 1 + nameBytes.length + 1 + mimeBytes.length);
+        if (nameBytes.length > 255) {
+            Logger.warn('PacketBuilder', `Filename truncated from ${nameBytes.length} to 255 bytes`);
+        }
+        if (mimeBytes.length > 255) {
+            Logger.warn('PacketBuilder', `MIME type truncated from ${mimeBytes.length} to 255 bytes`);
+        }
+
+        const safeName = nameBytes.slice(0, 255);
+        const safeMime = mimeBytes.slice(0, 255);
+
+        // Payload: FileSize(4) + TotalPackets(4) + NameLen(1) + Name + MimeLen(1) + Mime
+        const payload = new Uint8Array(4 + 4 + 1 + safeName.length + 1 + safeMime.length);
         const view = new DataView(payload.buffer);
-        
+
         view.setUint32(0, fileSize, false);
         view.setUint32(4, totalPackets, false);
-        payload[8] = nameBytes.length;
-        payload.set(nameBytes, 9);
-        let offset = 9 + nameBytes.length;
-        payload[offset] = mimeBytes.length;
-        payload.set(mimeBytes, offset + 1);
+        payload[8] = safeName.length;
+        payload.set(safeName, 9);
+        let offset = 9 + safeName.length;
+        payload[offset] = safeMime.length;
+        payload.set(safeMime, offset + 1);
 
         return this.build(CONFIG.TYPES.FILE_START, 0, payload);
     }
@@ -58,7 +68,7 @@ export class PacketBuilder {
         const view = new DataView(payload.buffer);
         view.setUint16(0, finalSequence, false);
         view.setUint32(2, totalBytes, false);
-        
+
         return this.build(CONFIG.TYPES.FILE_END, finalSequence + 1, payload);
     }
 }
@@ -69,15 +79,34 @@ export class PacketParser {
         this.bufferLength = 0;
         this.state = 'SYNC1';
         this.currentHeader = null;
+        this.headerStart = 0;
         this.onPacketReceived = null;
+
+        // Sequence tracking for gap/duplicate detection
+        this.lastDataSequence = -1;
+
+        // Link quality statistics
+        this.stats = {
+            packetsReceived: 0,
+            crcErrors: 0,
+            invalidHeaders: 0,
+            syncLosses: 0,
+            sequenceGaps: 0,
+            duplicatePackets: 0,
+            missingPackets: 0,
+            bytesProcessed: 0,
+        };
     }
 
     pushData(data) {
-        // Simple ring-buffer logic (simplified using array copying for JS)
+        this.stats.bytesProcessed += data.length;
+
         if (this.bufferLength + data.length > this.buffer.length) {
-            const newBuffer = new Uint8Array(this.bufferLength + data.length + 4096);
-            newBuffer.set(this.buffer.slice(0, this.bufferLength));
+            const newSize = this.bufferLength + data.length + 4096;
+            const newBuffer = new Uint8Array(newSize);
+            newBuffer.set(this.buffer.subarray(0, this.bufferLength)); // subarray avoids copy
             this.buffer = newBuffer;
+            Logger.debug('PacketParser', `Buffer expanded to ${newSize} bytes`);
         }
         this.buffer.set(data, this.bufferLength);
         this.bufferLength += data.length;
@@ -86,7 +115,7 @@ export class PacketParser {
 
     processBuffer() {
         let offset = 0;
-        
+
         while (offset < this.bufferLength) {
             if (this.state === 'SYNC1') {
                 if (this.buffer[offset] === CONFIG.PACKET.SYNC1) {
@@ -99,6 +128,7 @@ export class PacketParser {
                     this.headerStart = offset - 1; // Start of packet including SYNC1
                 } else {
                     this.state = 'SYNC1';
+                    this.stats.syncLosses++;
                     offset--; // Re-evaluate this byte as potential SYNC1
                 }
                 offset++;
@@ -112,10 +142,11 @@ export class PacketParser {
                         sequence: view.getUint16(5, false),
                         length: view.getUint16(7, false)
                     };
-                    
+
                     if (this.currentHeader.version !== CONFIG.PACKET.VERSION || this.currentHeader.length > CONFIG.PACKET.MAX_PAYLOAD_SIZE) {
-                        Logger.warn("PacketParser", `Invalid header. Version: ${this.currentHeader.version}, Length: ${this.currentHeader.length}`);
-                        this.state = 'SYNC1'; // Invalid header, look for next sync
+                        this.stats.invalidHeaders++;
+                        Logger.warn("PacketParser", `Invalid header dropped. Version: ${this.currentHeader.version}, Length: ${this.currentHeader.length}`);
+                        this.state = 'SYNC1';
                     } else {
                         this.state = 'PAYLOAD';
                     }
@@ -128,20 +159,31 @@ export class PacketParser {
                     // We have the full packet
                     const packetStart = this.headerStart;
                     const crcStart = packetStart + 9 + this.currentHeader.length;
-                    
+
                     const view = new DataView(this.buffer.buffer, this.buffer.byteOffset + crcStart);
                     const receivedCrc = view.getUint16(0, false);
                     const calculatedCrc = CRC16.calculate(this.buffer, packetStart + 2, 7 + this.currentHeader.length);
-                    
+
                     if (receivedCrc === calculatedCrc) {
+                        this.stats.packetsReceived++;
+
                         const payload = new Uint8Array(this.buffer.slice(packetStart + 9, packetStart + 9 + this.currentHeader.length));
+
+                        // Sequence validation for DATA packets
+                        if (this.currentHeader.type === CONFIG.TYPES.DATA) {
+                            this._validateSequence(this.currentHeader.sequence);
+                        }
+
+                        Logger.debug("PacketParser", `Valid packet: Type=${this.currentHeader.type}, Seq=${this.currentHeader.sequence}, Len=${this.currentHeader.length}`);
+
                         if (this.onPacketReceived) {
                             this.onPacketReceived(this.currentHeader, payload);
                         }
                     } else {
-                        Logger.error("PacketParser", `CRC Failure. Seq: ${this.currentHeader.sequence}`);
+                        this.stats.crcErrors++;
+                        Logger.error("PacketParser", `CRC FAILURE! Seq: ${this.currentHeader.sequence}, Expected: 0x${calculatedCrc.toString(16).toUpperCase()}, Got: 0x${receivedCrc.toString(16).toUpperCase()}`);
                     }
-                    
+
                     offset = crcStart + 2;
                     this.state = 'SYNC1';
                 } else {
@@ -149,11 +191,42 @@ export class PacketParser {
                 }
             }
         }
-        
+
         // Remove processed bytes from buffer
         if (offset > 0) {
             this.buffer.copyWithin(0, offset, this.bufferLength);
             this.bufferLength -= offset;
         }
+    }
+
+    _validateSequence(seq) {
+        if (this.lastDataSequence >= 0) {
+            const expected = this.lastDataSequence + 1;
+            if (seq === this.lastDataSequence) {
+                this.stats.duplicatePackets++;
+                Logger.warn('PacketParser', `Duplicate packet detected: Seq ${seq}`);
+            } else if (seq > expected) {
+                const gap = seq - expected;
+                this.stats.sequenceGaps++;
+                this.stats.missingPackets += gap;
+                Logger.error('PacketParser', `SEQUENCE GAP: Expected Seq ${expected}, got ${seq}. Missing ${gap} packet(s)!`);
+            } else if (seq < expected) {
+                Logger.warn('PacketParser', `Out-of-order packet: Expected Seq ${expected}, got ${seq}`);
+            }
+        }
+        this.lastDataSequence = seq;
+    }
+
+    getStats() {
+        return { ...this.stats };
+    }
+
+    resetSequence() {
+        this.lastDataSequence = -1;
+    }
+
+    resetStats() {
+        for (const key in this.stats) this.stats[key] = 0;
+        this.lastDataSequence = -1;
     }
 }

@@ -19,117 +19,158 @@ OpticalRX* opticalRx;
 QueueManager* bleTxQueue;
 PacketDecoder* packetDecoder;
 BLECharacteristic *pTxCharacteristic;
-bool deviceConnected = false;
+volatile bool deviceConnected = false;
+
+// Statistics
+uint32_t totalOpticalBytesRead = 0;
+uint32_t blePacketsSent = 0;
+uint32_t blePacketsDroppedNoConn = 0;
+uint32_t queueFullDrops = 0;
+unsigned long lastStatsTime = 0;
+const unsigned long STATS_INTERVAL_MS = 5000;
 
 class MyServerCallbacks: public BLEServerCallbacks {
-    void onConnect(BLEServer* pServer) { 
-        deviceConnected = true; 
+    void onConnect(BLEServer* pServer) {
+        deviceConnected = true;
         Serial.println("[INFO] Browser Connected to RX");
     }
-    void onDisconnect(BLEServer* pServer) { 
-        deviceConnected = false; 
+    void onDisconnect(BLEServer* pServer) {
+        deviceConnected = false;
         Serial.println("[WARN] Browser Disconnected from RX");
-        BLEDevice::startAdvertising(); 
+        BLEDevice::startAdvertising();
     }
 };
+
+/**
+ * Helper: Build a full framed packet into outBuffer for BLE transmission.
+ * Returns total packet size including SYNC, header, payload, CRC.
+ */
+size_t buildFramedPacket(uint8_t* outBuffer, uint8_t type, uint16_t sequence,
+                         const uint8_t* payload, uint16_t payloadLen, uint8_t flags = 0) {
+    outBuffer[0] = 0xAA;  // SYNC1
+    outBuffer[1] = 0x55;  // SYNC2
+    outBuffer[2] = 0x01;  // VERSION
+    outBuffer[3] = type;
+    outBuffer[4] = flags;
+    outBuffer[5] = (sequence >> 8) & 0xFF;
+    outBuffer[6] = sequence & 0xFF;
+    outBuffer[7] = (payloadLen >> 8) & 0xFF;
+    outBuffer[8] = payloadLen & 0xFF;
+
+    if (payloadLen > 0 && payload != nullptr) {
+        memcpy(&outBuffer[9], payload, payloadLen);
+    }
+
+    uint16_t crc = CRC16::calculate(&outBuffer[2], 7 + payloadLen);
+    size_t crcIdx = 9 + payloadLen;
+    outBuffer[crcIdx] = (crc >> 8) & 0xFF;
+    outBuffer[crcIdx + 1] = crc & 0xFF;
+
+    return crcIdx + 2;
+}
+
+/**
+ * Helper: Enqueue a framed packet for BLE transmission with error checking.
+ */
+bool enqueueForBLE(uint8_t* packetData, size_t packetLen) {
+    uint8_t qBuf[258];
+    qBuf[0] = (packetLen >> 8) & 0xFF;
+    qBuf[1] = packetLen & 0xFF;
+    memcpy(&qBuf[2], packetData, packetLen);
+
+    if (!bleTxQueue->enqueue(qBuf)) {
+        queueFullDrops++;
+        Serial.printf("[WARN] BLE TX queue full! Packet dropped. Total queue drops: %d\n", queueFullDrops);
+        return false;
+    }
+    return true;
+}
 
 void TaskOpticalRX(void *pvParameters) {
     uint8_t readBuf[256];
     ParsedPacket parsedPacket;
-    
+
+    Serial.println("[INFO] Optical RX task started. Waiting for light data...");
+
     for (;;) {
         if (opticalRx->available()) {
             size_t len = opticalRx->readData(readBuf, sizeof(readBuf));
-            
-            // Print out how many bytes hit the photodiode (even if garbage)
-            Serial.printf("[RX] Photodiode detected %d bytes\n", len);
-            
+            totalOpticalBytesRead += len;
+
+            Serial.printf("[RX] Photodiode: %d bytes (total: %d bytes)\n", len, totalOpticalBytesRead);
+
             for (size_t i = 0; i < len; i++) {
                 if (packetDecoder->processByte(readBuf[i], &parsedPacket)) {
-                    Serial.printf("[RX] SUCCESS! Valid packet decoded. Seq: %d\n", parsedPacket.sequence);
-                    // Valid packet successfully reconstructed from optical stream.
-                    // Push to BLE Queue to be sent to browser.
-                    // We must rebuild the raw bytes for the browser to parse (including headers).
-                    // Or we could let the browser do what it does. Since the browser 
-                    // is designed to parse the raw byte stream as well, we can just send the valid payload?
-                    // Actually, the browser has PacketParser. It expects the FULL packet including SYNC.
-                    // Let's reconstruct the raw packet array to send over BLE.
+                    Serial.printf("[RX] VALID PACKET! Type: %d, Seq: %d, Len: %d (Total valid: %d)\n",
+                                  parsedPacket.type, parsedPacket.sequence, parsedPacket.length,
+                                  packetDecoder->validPackets);
+
+                    // Rebuild the full framed packet for browser's PacketParser
                     uint8_t bleBuffer[256];
-                    bleBuffer[0] = PACKET_SYNC1;
-                    bleBuffer[1] = PACKET_SYNC2;
-                    bleBuffer[2] = parsedPacket.version;
-                    bleBuffer[3] = parsedPacket.type;
-                    bleBuffer[4] = parsedPacket.flags;
-                    bleBuffer[5] = (parsedPacket.sequence >> 8) & 0xFF;
-                    bleBuffer[6] = parsedPacket.sequence & 0xFF;
-                    bleBuffer[7] = (parsedPacket.length >> 8) & 0xFF;
-                    bleBuffer[8] = parsedPacket.length & 0xFF;
-                    if (parsedPacket.length > 0) {
-                        memcpy(&bleBuffer[9], parsedPacket.payload, parsedPacket.length);
-                    }
-                    
-                    // Recompute CRC or just use a dummy one?
-                    // Actually we validated it, let's just forward it as is, we'll recompute for simplicity
-                    uint16_t crc = CRC16::calculate(&bleBuffer[2], 7 + parsedPacket.length);
-                    size_t crcIdx = 9 + parsedPacket.length;
-                    bleBuffer[crcIdx] = (crc >> 8) & 0xFF;
-                    bleBuffer[crcIdx + 1] = crc & 0xFF;
-                    
-                    size_t totalLen = crcIdx + 2;
-                    
-                    // Send to queue (Length + Data)
-                    uint8_t qBuf[258];
-                    qBuf[0] = (totalLen >> 8) & 0xFF;
-                    qBuf[1] = totalLen & 0xFF;
-                    memcpy(&qBuf[2], bleBuffer, totalLen);
-                    
-                    
-                    bleTxQueue->enqueue(qBuf);
+                    size_t totalLen = buildFramedPacket(bleBuffer, parsedPacket.type,
+                                                       parsedPacket.sequence,
+                                                       parsedPacket.payload,
+                                                       parsedPacket.length,
+                                                       parsedPacket.flags);
+
+                    enqueueForBLE(bleBuffer, totalLen);
+
                 } else if (packetDecoder->hasCrcError()) {
                     packetDecoder->clearCrcError();
-                    
+
+                    // Build and send ERROR packet to browser
                     const char* msg = "CRC Failed! Optical noise detected.";
-                    size_t msgLen = strlen(msg);
                     uint8_t bleBuffer[256];
-                    bleBuffer[0] = 0xAA;
-                    bleBuffer[1] = 0x55;
-                    bleBuffer[2] = 1;
-                    bleBuffer[3] = 7; // ERROR type
-                    bleBuffer[4] = 0;
-                    bleBuffer[5] = 0;
-                    bleBuffer[6] = 0;
-                    bleBuffer[7] = (msgLen >> 8) & 0xFF;
-                    bleBuffer[8] = msgLen & 0xFF;
-                    memcpy(&bleBuffer[9], msg, msgLen);
-                    
-                    uint16_t crc = CRC16::calculate(&bleBuffer[2], 7 + msgLen);
-                    bleBuffer[9 + msgLen] = (crc >> 8) & 0xFF;
-                    bleBuffer[9 + msgLen + 1] = crc & 0xFF;
-                    
-                    size_t totalLen = 9 + msgLen + 2;
-                    uint8_t qBuf[258];
-                    qBuf[0] = (totalLen >> 8) & 0xFF;
-                    qBuf[1] = totalLen & 0xFF;
-                    memcpy(&qBuf[2], bleBuffer, totalLen);
-                    
-                    bleTxQueue->enqueue(qBuf);
+                    size_t totalLen = buildFramedPacket(bleBuffer, 0x07 /* ERROR */, 0,
+                                                       (const uint8_t*)msg, strlen(msg));
+
+                    enqueueForBLE(bleBuffer, totalLen);
+                    Serial.printf("[RX] CRC error forwarded to browser. Total CRC errors: %d\n",
+                                  packetDecoder->crcErrors);
                 }
             }
         }
+
+        // Periodic statistics report
+        if (millis() - lastStatsTime > STATS_INTERVAL_MS) {
+            lastStatsTime = millis();
+            if (totalOpticalBytesRead > 0 || packetDecoder->validPackets > 0) {
+                Serial.printf("[STATS] OpticalBytes: %d | ValidPkts: %d | CRC Errors: %d | InvalidHdr: %d | QueueDrops: %d | BLE Sent: %d | UART Overflow: %d\n",
+                              totalOpticalBytesRead, packetDecoder->validPackets,
+                              packetDecoder->crcErrors, packetDecoder->invalidHeaders,
+                              queueFullDrops, blePacketsSent,
+                              opticalRx->overflowCount);
+            }
+        }
+
         vTaskDelay(pdMS_TO_TICKS(5)); // Yield
     }
 }
 
 void TaskBLE_TX(void *pvParameters) {
     uint8_t qBuf[258];
+
+    Serial.println("[INFO] BLE TX task started.");
+
     for (;;) {
         if (bleTxQueue->dequeue(qBuf, portMAX_DELAY)) {
             if (deviceConnected) {
                 size_t len = (qBuf[0] << 8) | qBuf[1];
                 pTxCharacteristic->setValue(&qBuf[2], len);
                 pTxCharacteristic->notify();
+                blePacketsSent++;
+
+                if (blePacketsSent % 50 == 0) {
+                    Serial.printf("[BLE_TX] Sent %d packets to browser. Queue remaining: %d\n",
+                                  blePacketsSent, bleTxQueue->getCount());
+                }
+
                 // Small delay to prevent BLE stack overflow
-                vTaskDelay(pdMS_TO_TICKS(10)); 
+                vTaskDelay(pdMS_TO_TICKS(10));
+            } else {
+                blePacketsDroppedNoConn++;
+                Serial.printf("[WARN] BLE not connected. Packet dropped. Total no-conn drops: %d\n",
+                              blePacketsDroppedNoConn);
             }
         }
     }
@@ -137,7 +178,9 @@ void TaskBLE_TX(void *pvParameters) {
 
 void setup() {
     Serial.begin(115200);
-    Serial.println("[INFO] Booting VLC_RX...");
+    Serial.println("====================================");
+    Serial.println("[INFO] Booting VLC_RX Pro...");
+    Serial.println("====================================");
 
     opticalRx = new OpticalRX(PHOTODIODE_PIN, OPTICAL_BAUD);
     opticalRx->begin();
@@ -145,9 +188,11 @@ void setup() {
     bleTxQueue = new QueueManager(258, 20); // Queue up to 20 packets
     packetDecoder = new PacketDecoder();
 
+    Serial.printf("[INFO] Free heap after init: %d bytes\n", ESP.getFreeHeap());
+
     BLEDevice::init("VLC_RX_Pro");
     BLEDevice::setMTU(512);
-    
+
     BLEServer *pServer = BLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
 
@@ -160,11 +205,14 @@ void setup() {
 
     pService->start();
     pServer->getAdvertising()->start();
-    
+
     Serial.println("[INFO] VLC_RX BLE Advertising...");
+    Serial.printf("[INFO] Free heap after BLE init: %d bytes\n", ESP.getFreeHeap());
 
     xTaskCreatePinnedToCore(TaskOpticalRX, "OptRX", 4096, NULL, 3, NULL, 1);
     xTaskCreatePinnedToCore(TaskBLE_TX, "BleTX", 4096, NULL, 2, NULL, 1);
+
+    Serial.println("[INFO] VLC_RX fully initialized. Waiting for optical data...");
 }
 
 void loop() {

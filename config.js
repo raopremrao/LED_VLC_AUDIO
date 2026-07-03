@@ -1,6 +1,6 @@
 /**
  * Configuration module for the VLC Digital Data Link
- * Contains all the shared constants to ensure consistency across the application.
+ * Contains all shared constants to ensure consistency across the application.
  */
 
 export const CONFIG = {
@@ -18,9 +18,7 @@ export const CONFIG = {
         SYNC2: 0x55,
         VERSION: 0x01,
         MAX_PAYLOAD_SIZE: 240, // Bytes. Chosen to fit within BLE MTU and ESP32 buffers
-        HEADER_SIZE: 8,        // SYNC1, SYNC2, VER, TYPE, FLAGS, SEQ(2), LEN(2) (Actually 9 bytes. Wait: 1+1+1+1+1+2+2 = 9)
-        // Let's correct header size: SYNC1(1) + SYNC2(1) + VER(1) + TYPE(1) + FLAGS(1) + SEQ(2) + LEN(2) = 9 bytes
-        // CRC is 2 bytes at the end.
+        HEADER_SIZE: 9,        // SYNC1(1) + SYNC2(1) + VER(1) + TYPE(1) + FLAGS(1) + SEQ(2) + LEN(2) = 9 bytes
         OVERHEAD: 11,          // 9 bytes header + 2 bytes CRC
     },
 
@@ -37,8 +35,11 @@ export const CONFIG = {
 
     // Transfer Settings
     TRANSFER: {
-        RX_TIMEOUT_MS: 3000,   // How long to wait before declaring transfer failed on RX
-        TX_DELAY_MS: 25,       // Delay matched to 115200 baud to prevent ESP32 buffer overflow
+        RX_TIMEOUT_MS: 5000,       // Increased from 3000 for reliability
+        BASE_TX_DELAY_MS: 20,      // Base delay for adaptive BLE pacing
+        MAX_TX_DELAY_MS: 100,      // Max delay under backpressure
+        MAX_WRITE_QUEUE: 50,       // Max queued BLE writes before backpressure kicks in
+        MAX_RETRIES: 3,            // BLE write retry attempts before dropping
     },
 
     // Logging Configuration
@@ -50,5 +51,6 @@ export const CONFIG = {
             ERROR: 3
         },
         CURRENT_LEVEL: 0, // Set to INFO(1) in production
+        MAX_LOG_ENTRIES: 1000, // Cap DOM log entries to prevent performance degradation
     }
 };
