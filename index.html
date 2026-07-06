@@ -270,10 +270,12 @@
                         Connection...</div>
                 </div>
 
-                <div id="rx-controls" style="margin-top: 25px; text-align: center; padding-top: 20px; border-top: 1px solid var(--border);">
+                <div id="rx-controls" class="hidden" style="margin-top: 25px; text-align: center; padding-top: 20px; border-top: 1px solid var(--border);">
                     <audio id="audio-player" controls style="display: none;"></audio>
                     <button class="btn btn-outline" id="btn-download" style="margin-top: 15px; display: none;">Download Complete File</button>
-                    <button class="btn btn-outline" id="btn-force-download" style="margin-top: 15px; border-color: #f39c12; color: #f39c12;">Force Download (Partial Buffer)</button>
+                </div>
+                <div style="text-align: center; margin-top: 15px;">
+                    <button class="btn btn-outline" id="btn-force-download" style="border-color: #f39c12; color: #f39c12;">Force Download (Partial Buffer)</button>
                 </div>
             </div>
         </div>

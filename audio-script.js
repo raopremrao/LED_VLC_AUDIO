@@ -248,6 +248,7 @@ class TransferManager {
         Logger.info('RX', `MIME: ${this.rxMeta.type}`);
         this.updateUI('rx-buffer-status', `Receiving: ${this.rxMeta.name}`);
         document.getElementById('rx-controls').classList.add('hidden');
+        document.getElementById('btn-download').style.display = 'none';
     }
 
     processRxData(header, payload) {

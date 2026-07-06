@@ -36,7 +36,7 @@ export const CONFIG = {
     // Transfer Settings
     TRANSFER: {
         RX_TIMEOUT_MS: 30000,       
-        BASE_TX_DELAY_MS: 1100,     // 1.1 seconds per packet at 2400 baud
+        BASE_TX_DELAY_MS: 1300,     // Increased to 1.3s to completely prevent ESP32 queue overflow
         MAX_TX_DELAY_MS: 1500,      // Max delay under backpressure
         MAX_WRITE_QUEUE: 50,       // Max queued BLE writes before backpressure kicks in
         MAX_RETRIES: 3,            // BLE write retry attempts before dropping
