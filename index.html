@@ -268,16 +268,9 @@
             <h1>VLC Data Link - Pro</h1>
             <p>Reliable File Transfer over Optical UART</p>
             <div class="settings-container">
-                <select id="baud-selector">
-                    <option value="1200">1200 baud</option>
-                    <option value="2400" selected>2400 baud</option>
-                    <option value="4800">4800 baud</option>
-                    <option value="9600">9600 baud</option>
-                    <option value="19200">19200 baud</option>
-                    <option value="38400">38400 baud</option>
-                    <option value="57600">57600 baud</option>
-                    <option value="115200">115200 baud</option>
-                </select>
+                <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px;">
+                    Baud: <input type="number" id="baud-selector" value="2400" min="300" max="5000000" style="width: 70px; background: transparent; color: var(--text-main); border: 1px solid var(--border); border-radius: 3px; padding: 2px;">
+                </div>
                 <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">
                     Delay: <input type="number" id="tx-delay-input" value="1300" title="BASE_TX_DELAY_MS"> ms
                 </div>

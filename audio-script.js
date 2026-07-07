@@ -53,18 +53,14 @@ class TransferManager {
 
     async handleBaudChange(e) {
         const newBaud = parseInt(e.target.value);
-        let newDelay = 1300;
+        if (isNaN(newBaud) || newBaud <= 0) return;
         
         // Auto-adjust safe delay based on baud rate (assuming 240B payload = ~258 bytes total)
         // Time to send 258 bytes at baud rate: 258 * 10 / baudRate
-        // Plus safe margin.
-        if (newBaud === 1200) newDelay = 2600;
-        if (newBaud === 2400) newDelay = 1300;
-        if (newBaud === 4800) newDelay = 650;
-        if (newBaud === 9600) newDelay = 350;
-        if (newBaud === 19200) newDelay = 180;
-        if (newBaud === 38400) newDelay = 100;
-        if (newBaud >= 57600) newDelay = 50;
+        // Plus 20% safe margin.
+        let timeInSeconds = 2580 / newBaud;
+        let newDelay = Math.ceil((timeInSeconds * 1000) * 1.2);
+        if (newDelay < 50) newDelay = 50; // hardware buffer margin
 
         document.getElementById('tx-delay-input').value = newDelay;
         CONFIG.TRANSFER.BASE_TX_DELAY_MS = newDelay;
