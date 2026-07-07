@@ -18,7 +18,7 @@ QueueManager* bleRxQueue;
 volatile bool deviceConnected = false;
 
 // Max BLE packet size + 2 bytes for length prefix
-#define MAX_BLE_PACKET 512
+#define MAX_BLE_PACKET 256
 
 // Statistics
 uint32_t blePacketsReceived = 0;

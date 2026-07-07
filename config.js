@@ -17,7 +17,7 @@ export const CONFIG = {
         SYNC1: 0xAA,
         SYNC2: 0x55,
         VERSION: 0x01,
-        MAX_PAYLOAD_SIZE: 480, // Expanded to 480 to fit strictly under 512 MTU
+        MAX_PAYLOAD_SIZE: 240, // Bytes. Chosen to fit within BLE MTU and ESP32 buffers
         HEADER_SIZE: 9,        // SYNC1(1) + SYNC2(1) + VER(1) + TYPE(1) + FLAGS(1) + SEQ(2) + LEN(2) = 9 bytes
         OVERHEAD: 11,          // 9 bytes header + 2 bytes CRC
     },
