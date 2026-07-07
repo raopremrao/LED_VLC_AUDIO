@@ -175,9 +175,12 @@ class TransferManager {
                     size: file.size
                 };
             } else {
-                arrayBuffer = await this.downsampleAudio(file, quality);
+                const [rateStr, bitStr] = quality.split('-');
+                const targetRate = parseInt(rateStr);
+                const targetBits = parseInt(bitStr);
+                arrayBuffer = await this.downsampleAudio(file, targetRate, targetBits);
                 this.fileMeta = {
-                    name: file.name.split('.')[0] + `_${quality}Hz.wav`,
+                    name: file.name.split('.')[0] + `_${targetRate}Hz_${targetBits}bit.wav`,
                     type: 'audio/wav',
                     size: arrayBuffer.byteLength
                 };
@@ -197,8 +200,7 @@ class TransferManager {
         }
     }
 
-    async downsampleAudio(file, targetSampleRateStr) {
-        const targetSampleRate = parseInt(targetSampleRateStr);
+    async downsampleAudio(file, targetSampleRate, targetBits) {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const arrayBuffer = await file.arrayBuffer();
         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
@@ -210,18 +212,20 @@ class TransferManager {
         source.start();
         
         const renderedBuffer = await offlineCtx.startRendering();
-        return this.audioBufferToWav(renderedBuffer);
+        return this.audioBufferToWav(renderedBuffer, targetBits);
     }
 
-    audioBufferToWav(buffer) {
-        const numOfChan = buffer.numberOfChannels,
-              length = buffer.length * numOfChan * 2 + 44,
-              bufferArray = new ArrayBuffer(length),
-              view = new DataView(bufferArray),
-              channels = [],
-              sampleRate = buffer.sampleRate;
+    audioBufferToWav(buffer, bitDepth = 16) {
+        const numOfChan = buffer.numberOfChannels;
+        const bytesPerSample = bitDepth / 8;
+        const length = buffer.length * numOfChan * bytesPerSample + 44;
+        const bufferArray = new ArrayBuffer(length);
+        const view = new DataView(bufferArray);
+        const channels = [];
+        const sampleRate = buffer.sampleRate;
         let offset = 0, pos = 0;
 
+        function setUint8(data) { view.setUint8(pos, data); pos += 1; }
         function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
         function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
 
@@ -234,9 +238,9 @@ class TransferManager {
         setUint16(1); // PCM (uncompressed)
         setUint16(numOfChan);
         setUint32(sampleRate);
-        setUint32(sampleRate * 2 * numOfChan); // avg. bytes/sec
-        setUint16(numOfChan * 2); // block-align
-        setUint16(16); // 16-bit
+        setUint32(sampleRate * bytesPerSample * numOfChan); // avg. bytes/sec
+        setUint16(numOfChan * bytesPerSample); // block-align
+        setUint16(bitDepth); // 16-bit or 8-bit
 
         setUint32(0x61746164); // "data" - chunk
         setUint32(length - pos - 4); // chunk length
@@ -247,9 +251,15 @@ class TransferManager {
         while(offset < buffer.length) {
             for(let i = 0; i < numOfChan; i++) {
                 let sample = Math.max(-1, Math.min(1, channels[i][offset]));
-                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
-                view.setInt16(pos, sample, true);
-                pos += 2;
+                if (bitDepth === 16) {
+                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+                    view.setInt16(pos, sample, true);
+                    pos += 2;
+                } else {
+                    sample = Math.round((sample + 1) * 127.5);
+                    view.setUint8(pos, sample);
+                    pos += 1;
+                }
             }
             offset++;
         }

@@ -144,14 +144,19 @@ export class BLEManager {
                 Logger.error(`BLE_${this.role}`, `Packet DROPPED after ${CONFIG.TRANSFER.MAX_RETRIES} retries. Total dropped: ${this.stats.droppedPackets}`);
             }
         } finally {
-            this.isWriting = false;
             if (this.writeQueue.length > 0) {
                 // Adaptive pacing: increase delay as queue fills up
                 const queueRatio = this.writeQueue.length / CONFIG.TRANSFER.MAX_WRITE_QUEUE;
                 const maxDelay = Math.max(CONFIG.TRANSFER.MAX_TX_DELAY_MS, CONFIG.TRANSFER.BASE_TX_DELAY_MS * 1.5);
                 const delay = CONFIG.TRANSFER.BASE_TX_DELAY_MS +
                     (maxDelay - CONFIG.TRANSFER.BASE_TX_DELAY_MS) * Math.min(queueRatio, 1);
-                setTimeout(() => this._processWriteQueue(), delay);
+                
+                setTimeout(() => {
+                    this.isWriting = false;
+                    this._processWriteQueue();
+                }, delay);
+            } else {
+                this.isWriting = false;
             }
         }
     }
