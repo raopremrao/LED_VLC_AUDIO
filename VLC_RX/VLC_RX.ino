@@ -135,7 +135,7 @@ void TaskOpticalRX(void *pvParameters) {
                     //               packetDecoder->validPackets);
 
                     // Rebuild the full framed packet for browser's PacketParser
-                    uint8_t bleBuffer[512];
+                    uint8_t bleBuffer[256];
                     size_t totalLen = buildFramedPacket(bleBuffer, parsedPacket.type,
                                                        parsedPacket.sequence,
                                                        parsedPacket.payload,
