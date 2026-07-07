@@ -13,6 +13,12 @@ void OpticalTX::begin() {
     Serial.printf("[OpticalTX] UART1 started. Baud: %d, TX Pin: %d, Inverted: true\n", _baudRate, _txPin);
 }
 
+void OpticalTX::updateBaudRate(uint32_t newBaud) {
+    _baudRate = newBaud;
+    Serial1.updateBaudRate(_baudRate);
+    Serial.printf("[OpticalTX] Baud rate dynamically updated to %d\n", _baudRate);
+}
+
 void OpticalTX::writeData(const uint8_t* data, size_t length) {
     Serial1.write(data, length);
     

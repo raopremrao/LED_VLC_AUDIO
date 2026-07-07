@@ -12,6 +12,7 @@
 const int PHOTODIODE_PIN = 34;
 const int OPTICAL_BAUD = 2400; 
 #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+#define CHARACTERISTIC_UUID_RX "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_UUID_TX "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
 
 // Globals
@@ -38,6 +39,25 @@ class MyServerCallbacks: public BLEServerCallbacks {
         deviceConnected = false;
         Serial.println("[WARN] Browser Disconnected from RX");
         BLEDevice::startAdvertising();
+    }
+};
+
+class MyRxCallbacks: public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *pCharacteristic) {
+        uint8_t* rxData = pCharacteristic->getData();
+        size_t rxLength = pCharacteristic->getLength();
+        
+        if (rxLength > 4 && strncmp((const char*)rxData, "CMD:", 4) == 0) {
+            String cmdStr = String((const char*)rxData).substring(0, rxLength);
+            Serial.println("[CMD] Received command: " + cmdStr);
+            if (cmdStr.startsWith("CMD:BAUD:")) {
+                int newBaud = cmdStr.substring(9).toInt();
+                if (newBaud > 0) {
+                    Serial.printf("[CMD] Changing Optical Baud to %d\n", newBaud);
+                    opticalRx->updateBaudRate(newBaud);
+                }
+            }
+        }
     }
 };
 
@@ -207,6 +227,13 @@ void setup() {
     pServer->setCallbacks(new MyServerCallbacks());
 
     BLEService *pService = pServer->createService(SERVICE_UUID);
+    
+    BLECharacteristic *pRxCharacteristic = pService->createCharacteristic(
+        CHARACTERISTIC_UUID_RX,
+        BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
+    );
+    pRxCharacteristic->setCallbacks(new MyRxCallbacks());
+
     pTxCharacteristic = pService->createCharacteristic(
         CHARACTERISTIC_UUID_TX,
         BLECharacteristic::PROPERTY_NOTIFY

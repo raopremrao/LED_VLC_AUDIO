@@ -7,6 +7,7 @@ class OpticalRX {
 public:
     OpticalRX(int rxPin, uint32_t baudRate);
     void begin();
+    void updateBaudRate(uint32_t newBaud);
 
     // Returns number of bytes read into buffer
     size_t readData(uint8_t* buffer, size_t maxLen);

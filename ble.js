@@ -51,6 +51,11 @@ export class BLEManager {
                 this.rxCharacteristic = await this.service.getCharacteristic(CONFIG.BLE.RX_CHARACTERISTIC);
                 await this.rxCharacteristic.startNotifications();
                 this.rxCharacteristic.addEventListener('characteristicvaluechanged', this.handleCharacteristicValueChanged.bind(this));
+                
+                try {
+                    this.txCharacteristic = await this.service.getCharacteristic(CONFIG.BLE.TX_CHARACTERISTIC);
+                } catch(e) {}
+
                 Logger.info(`BLE_${this.role}`, `RX Notifications started. Listening for optical data.`);
             }
 

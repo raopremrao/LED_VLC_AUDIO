@@ -47,6 +47,7 @@
             padding: 20px;
             border-bottom: 1px solid var(--border);
             background: var(--card-bg);
+            position: relative;
         }
 
         .header h1 {
@@ -60,6 +61,36 @@
             margin: 5px 0 0 0;
             color: var(--text-muted);
             font-size: 14px;
+        }
+
+        .settings-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+
+        .settings-container select {
+            background: var(--panel-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .settings-container input {
+            background: var(--panel-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            outline: none;
+            width: 60px;
+            margin-top: 5px;
         }
 
         .tabs {
@@ -236,6 +267,21 @@
         <div class="header">
             <h1>VLC Data Link - Pro</h1>
             <p>Reliable File Transfer over Optical UART</p>
+            <div class="settings-container">
+                <select id="baud-selector">
+                    <option value="1200">1200 baud</option>
+                    <option value="2400" selected>2400 baud</option>
+                    <option value="4800">4800 baud</option>
+                    <option value="9600">9600 baud</option>
+                    <option value="19200">19200 baud</option>
+                    <option value="38400">38400 baud</option>
+                    <option value="57600">57600 baud</option>
+                    <option value="115200">115200 baud</option>
+                </select>
+                <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">
+                    Delay: <input type="number" id="tx-delay-input" value="1300" title="BASE_TX_DELAY_MS"> ms
+                </div>
+            </div>
         </div>
 
         <div class="tabs">

@@ -43,8 +43,62 @@ class TransferManager {
         document.getElementById('btn-stream').addEventListener('click', () => this.startTransmission());
         document.getElementById('btn-download').addEventListener('click', () => this.downloadReceivedFile());
         document.getElementById('btn-force-download').addEventListener('click', () => this.downloadReceivedFile());
+        
+        document.getElementById('baud-selector').addEventListener('change', (e) => this.handleBaudChange(e));
+        document.getElementById('tx-delay-input').addEventListener('input', (e) => this.handleDelayChange(e));
 
         document.getElementById('btn-clear-logs').addEventListener('click', () => Logger.clear());
+    }
+
+    async handleBaudChange(e) {
+        const newBaud = parseInt(e.target.value);
+        let newDelay = 1300;
+        
+        // Auto-adjust safe delay based on baud rate (assuming 240B payload = ~258 bytes total)
+        // Time to send 258 bytes at baud rate: 258 * 10 / baudRate
+        // Plus safe margin.
+        if (newBaud === 1200) newDelay = 2600;
+        if (newBaud === 2400) newDelay = 1300;
+        if (newBaud === 4800) newDelay = 650;
+        if (newBaud === 9600) newDelay = 350;
+        if (newBaud === 19200) newDelay = 180;
+        if (newBaud === 38400) newDelay = 100;
+        if (newBaud >= 57600) newDelay = 50;
+
+        document.getElementById('tx-delay-input').value = newDelay;
+        CONFIG.TRANSFER.BASE_TX_DELAY_MS = newDelay;
+        
+        Logger.info('System', `Baud rate selected: ${newBaud}. Auto-set TX Delay: ${newDelay}ms`);
+
+        // Send commands to ESP32s if connected
+        const cmdStr = `CMD:BAUD:${newBaud}`;
+        const cmdBytes = new TextEncoder().encode(cmdStr);
+        
+        if (this.txBle && this.txBle.txCharacteristic) {
+            try {
+                await this.txBle.txCharacteristic.writeValueWithoutResponse(cmdBytes);
+                Logger.info('TX', `Sent Baud Rate command to TX ESP32: ${newBaud}`);
+            } catch (err) {
+                Logger.error('TX', `Failed to send Baud command: ${err}`);
+            }
+        }
+        
+        if (this.rxBle && this.rxBle.txCharacteristic) {
+            try {
+                await this.rxBle.txCharacteristic.writeValueWithoutResponse(cmdBytes);
+                Logger.info('RX', `Sent Baud Rate command to RX ESP32: ${newBaud}`);
+            } catch (err) {
+                Logger.error('RX', `Failed to send Baud command: ${err}`);
+            }
+        }
+    }
+
+    handleDelayChange(e) {
+        const val = parseInt(e.target.value);
+        if (!isNaN(val) && val > 0) {
+            CONFIG.TRANSFER.BASE_TX_DELAY_MS = val;
+            Logger.info('System', `Manual TX Delay override: ${val}ms`);
+        }
     }
 
     switchTab(tab) {

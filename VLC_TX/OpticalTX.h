@@ -7,6 +7,7 @@ class OpticalTX {
 public:
     OpticalTX(int txPin, uint32_t baudRate);
     void begin();
+    void updateBaudRate(uint32_t newBaud);
     void writeData(const uint8_t* data, size_t length);
 
     // Statistics

@@ -19,6 +19,12 @@ void OpticalRX::begin() {
     Serial.printf("[OpticalRX] UART1 started. Baud: %d, RX Pin: %d, Buffer: 4096, Inverted: true\n", _baudRate, _rxPin);
 }
 
+void OpticalRX::updateBaudRate(uint32_t newBaud) {
+    _baudRate = newBaud;
+    Serial1.updateBaudRate(_baudRate);
+    Serial.printf("[OpticalRX] Baud rate dynamically updated to %d\n", _baudRate);
+}
+
 size_t OpticalRX::readData(uint8_t* buffer, size_t maxLen) {
     size_t len = 0;
     while (Serial1.available() && len < maxLen) {
