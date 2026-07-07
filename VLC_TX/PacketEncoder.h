@@ -7,7 +7,7 @@
 #define PACKET_SYNC2 0x55
 #define PACKET_VERSION 0x01
 
-#define MAX_PAYLOAD_SIZE 240
+#define MAX_PAYLOAD_SIZE 512
 #define PACKET_HEADER_SIZE 9
 #define PACKET_OVERHEAD 11 // Header + 2 byte CRC
 
