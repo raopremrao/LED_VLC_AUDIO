@@ -7,7 +7,7 @@
 #define PACKET_SYNC2 0x55
 #define PACKET_VERSION 0x01
 
-#define MAX_PAYLOAD_SIZE 240
+#define MAX_PAYLOAD_SIZE 480
 #define RX_BUFFER_SIZE (MAX_PAYLOAD_SIZE + 16)
 
 typedef struct {

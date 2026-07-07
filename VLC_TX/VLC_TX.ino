@@ -8,7 +8,7 @@
 
 // Configuration
 const int LASER_PIN = 2;
-const int OPTICAL_BAUD = 2400; 
+const int OPTICAL_BAUD = 2500; 
 #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_UUID_RX "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
 
@@ -18,7 +18,7 @@ QueueManager* bleRxQueue;
 volatile bool deviceConnected = false;
 
 // Max BLE packet size + 2 bytes for length prefix
-#define MAX_BLE_PACKET 256
+#define MAX_BLE_PACKET 512
 
 // Statistics
 uint32_t blePacketsReceived = 0;

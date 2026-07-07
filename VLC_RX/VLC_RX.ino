@@ -10,7 +10,7 @@
 
 // Configuration
 const int PHOTODIODE_PIN = 34;
-const int OPTICAL_BAUD = 2400; 
+const int OPTICAL_BAUD = 2500; 
 #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_UUID_RX "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_UUID_TX "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
@@ -135,7 +135,7 @@ void TaskOpticalRX(void *pvParameters) {
                     //               packetDecoder->validPackets);
 
                     // Rebuild the full framed packet for browser's PacketParser
-                    uint8_t bleBuffer[256];
+                    uint8_t bleBuffer[MAX_PAYLOAD_SIZE + 16];
                     size_t totalLen = buildFramedPacket(bleBuffer, parsedPacket.type,
                                                        parsedPacket.sequence,
                                                        parsedPacket.payload,
