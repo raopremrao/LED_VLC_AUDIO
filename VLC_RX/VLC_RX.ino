@@ -49,11 +49,11 @@ class MyRxCallbacks: public BLECharacteristicCallbacks {
         
         if (rxLength > 4 && strncmp((const char*)rxData, "CMD:", 4) == 0) {
             String cmdStr = String((const char*)rxData).substring(0, rxLength);
-            Serial.println("[CMD] Received command: " + cmdStr);
+            // Serial.println("[CMD] Received command: " + cmdStr);
             if (cmdStr.startsWith("CMD:BAUD:")) {
                 int newBaud = cmdStr.substring(9).toInt();
                 if (newBaud > 0) {
-                    Serial.printf("[CMD] Changing Optical Baud to %d\n", newBaud);
+                    // Serial.printf("[CMD] Changing Optical Baud to %d\n", newBaud);
                     opticalRx->updateBaudRate(newBaud);
                 }
             }
@@ -100,7 +100,7 @@ bool enqueueForBLE(uint8_t* packetData, size_t packetLen) {
 
     if (!bleTxQueue->enqueue(qBuf)) {
         queueFullDrops++;
-        Serial.printf("[WARN] BLE TX queue full! Packet dropped. Total queue drops: %d\n", queueFullDrops);
+        // Serial.printf("[WARN] BLE TX queue full! Packet dropped. Total queue drops: %d\n", queueFullDrops);
         return false;
     }
     return true;
@@ -117,22 +117,22 @@ void TaskOpticalRX(void *pvParameters) {
             size_t len = opticalRx->readData(readBuf, sizeof(readBuf));
             totalOpticalBytesRead += len;
 
-            Serial.printf("[RX] Photodiode: %d bytes (total: %d bytes)\n", len, totalOpticalBytesRead);
+            // Serial.printf("[RX] Photodiode: %d bytes (total: %d bytes)\n", len, totalOpticalBytesRead);
 
             // Hex dump first 512 bytes for diagnostics — helps identify noise vs real data
             if (totalOpticalBytesRead <= 512) {
-                Serial.print("[HEX] ");
-                for (size_t h = 0; h < len && h < 32; h++) {
-                    Serial.printf("%02X ", readBuf[h]);
-                }
-                Serial.println();
+                // Serial.print("[HEX] ");
+                // for (size_t h = 0; h < len && h < 32; h++) {
+                //     Serial.printf("%02X ", readBuf[h]);
+                // }
+                // Serial.println();
             }
 
             for (size_t i = 0; i < len; i++) {
                 if (packetDecoder->processByte(readBuf[i], &parsedPacket)) {
-                    Serial.printf("[RX] VALID PACKET! Type: %d, Seq: %d, Len: %d (Total valid: %d)\n",
-                                  parsedPacket.type, parsedPacket.sequence, parsedPacket.length,
-                                  packetDecoder->validPackets);
+                    // Serial.printf("[RX] VALID PACKET! Type: %d, Seq: %d, Len: %d (Total valid: %d)\n",
+                    //               parsedPacket.type, parsedPacket.sequence, parsedPacket.length,
+                    //               packetDecoder->validPackets);
 
                     // Rebuild the full framed packet for browser's PacketParser
                     uint8_t bleBuffer[256];
@@ -154,8 +154,9 @@ void TaskOpticalRX(void *pvParameters) {
                                                        (const uint8_t*)msg, strlen(msg));
 
                     enqueueForBLE(bleBuffer, totalLen);
-                    Serial.printf("[RX] CRC error forwarded to browser. Total CRC errors: %d\n",
-                                  packetDecoder->crcErrors);
+                    enqueueForBLE(bleBuffer, totalLen);
+                    // Serial.printf("[RX] CRC error forwarded to browser. Total CRC errors: %d\n",
+                    //               packetDecoder->crcErrors);
                 }
             }
         }
@@ -163,13 +164,13 @@ void TaskOpticalRX(void *pvParameters) {
         // Periodic statistics report
         if (millis() - lastStatsTime > STATS_INTERVAL_MS) {
             lastStatsTime = millis();
-            if (totalOpticalBytesRead > 0 || packetDecoder->validPackets > 0) {
-                Serial.printf("[STATS] OpticalBytes: %d | ValidPkts: %d | CRC Errors: %d | InvalidHdr: %d | QueueDrops: %d | BLE Sent: %d | UART Overflow: %d\n",
-                              totalOpticalBytesRead, packetDecoder->validPackets,
-                              packetDecoder->crcErrors, packetDecoder->invalidHeaders,
-                              queueFullDrops, blePacketsSent,
-                              opticalRx->overflowCount);
-            }
+            // if (totalOpticalBytesRead > 0 || packetDecoder->validPackets > 0) {
+            //     Serial.printf("[STATS] OpticalBytes: %d | ValidPkts: %d | CRC Errors: %d | InvalidHdr: %d | QueueDrops: %d | BLE Sent: %d | UART Overflow: %d\n",
+            //                   totalOpticalBytesRead, packetDecoder->validPackets,
+            //                   packetDecoder->crcErrors, packetDecoder->invalidHeaders,
+            //                   queueFullDrops, blePacketsSent,
+            //                   opticalRx->overflowCount);
+            // }
         }
 
         vTaskDelay(pdMS_TO_TICKS(5)); // Yield
@@ -189,10 +190,10 @@ void TaskBLE_TX(void *pvParameters) {
                 pTxCharacteristic->notify();
                 blePacketsSent++;
 
-                if (blePacketsSent % 50 == 0) {
-                    Serial.printf("[BLE_TX] Sent %d packets to browser. Queue remaining: %d\n",
-                                  blePacketsSent, bleTxQueue->getCount());
-                }
+                // if (blePacketsSent % 50 == 0) {
+                //     Serial.printf("[BLE_TX] Sent %d packets to browser. Queue remaining: %d\n",
+                //                   blePacketsSent, bleTxQueue->getCount());
+                // }
 
                 // Small delay to prevent BLE stack overflow
                 vTaskDelay(pdMS_TO_TICKS(10));

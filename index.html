@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>VLC Digital Audio Pro Edition</title>
     <style>
         :root {
@@ -297,7 +297,16 @@
                 <div class="file-input-wrapper">
                     <label style="display:block; margin-bottom:8px; color:var(--text-muted); font-size:14px;">Select
                         file to transmit:</label>
-                    <input type="file" id="file-input">
+                    <input type="file" id="file-input" accept="audio/*">
+                    <div style="margin-top: 10px; text-align: left;">
+                        <label style="color:var(--text-muted); font-size:12px;">Audio Quality:</label>
+                        <select id="quality-selector" style="background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; padding: 4px; font-size: 12px; margin-left: 5px; outline: none; cursor: pointer;">
+                            <option value="original">Original (No Drop)</option>
+                            <option value="22050">High (22kHz Mono WAV)</option>
+                            <option value="16000">Medium (16kHz Mono WAV)</option>
+                            <option value="8000">Low (8kHz Mono WAV)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <button class="btn" id="btn-stream" disabled style="width: 100%;">Start Reliable Transfer</button>

@@ -148,8 +148,9 @@ export class BLEManager {
             if (this.writeQueue.length > 0) {
                 // Adaptive pacing: increase delay as queue fills up
                 const queueRatio = this.writeQueue.length / CONFIG.TRANSFER.MAX_WRITE_QUEUE;
+                const maxDelay = Math.max(CONFIG.TRANSFER.MAX_TX_DELAY_MS, CONFIG.TRANSFER.BASE_TX_DELAY_MS * 1.5);
                 const delay = CONFIG.TRANSFER.BASE_TX_DELAY_MS +
-                    (CONFIG.TRANSFER.MAX_TX_DELAY_MS - CONFIG.TRANSFER.BASE_TX_DELAY_MS) * Math.min(queueRatio, 1);
+                    (maxDelay - CONFIG.TRANSFER.BASE_TX_DELAY_MS) * Math.min(queueRatio, 1);
                 setTimeout(() => this._processWriteQueue(), delay);
             }
         }

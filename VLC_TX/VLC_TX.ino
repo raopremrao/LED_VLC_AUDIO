@@ -44,6 +44,19 @@ class MyRxCallbacks: public BLECharacteristicCallbacks {
         uint8_t* rxData = pCharacteristic->getData();
         size_t rxLength = pCharacteristic->getLength();
 
+        if (rxLength > 4 && strncmp((const char*)rxData, "CMD:", 4) == 0) {
+            String cmdStr = String((const char*)rxData).substring(0, rxLength);
+            // Serial.println("[CMD] Received command: " + cmdStr);
+            if (cmdStr.startsWith("CMD:BAUD:")) {
+                int newBaud = cmdStr.substring(9).toInt();
+                if (newBaud > 0) {
+                    // Serial.printf("[CMD] Changing Optical Baud to %d\n", newBaud);
+                    opticalTx->updateBaudRate(newBaud);
+                }
+            }
+            return;
+        }
+
         if (rxLength > 0 && rxLength <= MAX_BLE_PACKET) {
             blePacketsReceived++;
 
@@ -55,13 +68,13 @@ class MyRxCallbacks: public BLECharacteristicCallbacks {
 
             if (!bleRxQueue->enqueue(buffer)) {
                 queueFullDrops++;
-                Serial.printf("[WARN] Optical TX queue full! Packet dropped. BLE recv: %d, Queue drops: %d\n",
-                              blePacketsReceived, queueFullDrops);
+                // Serial.printf("[WARN] Optical TX queue full! Packet dropped. BLE recv: %d, Queue drops: %d\n",
+                //               blePacketsReceived, queueFullDrops);
             } else {
-                if (blePacketsReceived % 50 == 0) {
-                    Serial.printf("[BLE_RX] Received %d packets from browser. Queue: %d/%d\n",
-                                  blePacketsReceived, bleRxQueue->getCount(), 50);
-                }
+                // if (blePacketsReceived % 50 == 0) {
+                //     Serial.printf("[BLE_RX] Received %d packets from browser. Queue: %d/%d\n",
+                //                   blePacketsReceived, bleRxQueue->getCount(), 50);
+                // }
             }
         } else {
             Serial.printf("[WARN] Invalid BLE packet size: %d bytes (max %d)\n", rxLength, MAX_BLE_PACKET);
@@ -80,21 +93,21 @@ void TaskOpticalTX(void *pvParameters) {
             opticalTx->writeData(&buffer[2], length);
             opticalPacketsSent++;
 
-            if (opticalPacketsSent % 50 == 0) {
-                Serial.printf("[OPTICAL_TX] Sent %d packets over laser. Total bytes: %d. Queue: %d\n",
-                              opticalPacketsSent, opticalTx->totalBytesSent, bleRxQueue->getCount());
-            }
+            // if (opticalPacketsSent % 50 == 0) {
+            //     Serial.printf("[OPTICAL_TX] Sent %d packets over laser. Total bytes: %d. Queue: %d\n",
+            //                   opticalPacketsSent, opticalTx->totalBytesSent, bleRxQueue->getCount());
+            // }
         }
 
         // Periodic statistics report
         if (millis() - lastStatsTime > STATS_INTERVAL_MS) {
             lastStatsTime = millis();
-            if (blePacketsReceived > 0 || opticalPacketsSent > 0) {
-                Serial.printf("[STATS] BLE Recv: %d | Optical Sent: %d | Bytes: %d | Queue Drops: %d | Free Heap: %d\n",
-                              blePacketsReceived, opticalPacketsSent,
-                              opticalTx->totalBytesSent, queueFullDrops,
-                              ESP.getFreeHeap());
-            }
+            // if (blePacketsReceived > 0 || opticalPacketsSent > 0) {
+            //     Serial.printf("[STATS] BLE Recv: %d | Optical Sent: %d | Bytes: %d | Queue Drops: %d | Free Heap: %d\n",
+            //                   blePacketsReceived, opticalPacketsSent,
+            //                   opticalTx->totalBytesSent, queueFullDrops,
+            //                   ESP.getFreeHeap());
+            // }
         }
     }
 }

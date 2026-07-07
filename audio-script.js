@@ -159,23 +159,99 @@ class TransferManager {
         const file = event.target.files[0];
         if (!file) return;
 
-        this.fileMeta = {
-            name: file.name,
-            type: file.type || 'application/octet-stream',
-            size: file.size
-        };
+        const quality = document.getElementById('quality-selector').value;
+        Logger.info('TX', `Processing audio file (Quality: ${quality}). Please wait...`);
+        document.getElementById('btn-stream').disabled = true;
 
-        Logger.info('TX', `File loaded: "${file.name}" (${Utils.formatBytes(file.size)}, ${this.fileMeta.type})`);
+        try {
+            let arrayBuffer;
+            if (quality === 'original') {
+                arrayBuffer = await file.arrayBuffer();
+                this.fileMeta = {
+                    name: file.name,
+                    type: file.type || 'application/octet-stream',
+                    size: file.size
+                };
+            } else {
+                arrayBuffer = await this.downsampleAudio(file, quality);
+                this.fileMeta = {
+                    name: file.name.split('.')[0] + `_${quality}Hz.wav`,
+                    type: 'audio/wav',
+                    size: arrayBuffer.byteLength
+                };
+            }
 
-        const arrayBuffer = await file.arrayBuffer();
-        this.fileBuffer = new Uint8Array(arrayBuffer);
+            this.fileBuffer = new Uint8Array(arrayBuffer);
 
-        const totalPackets = Math.ceil(this.fileBuffer.length / CONFIG.PACKET.MAX_PAYLOAD_SIZE);
-        Logger.info('TX', `File will be split into ${totalPackets} packets of up to ${CONFIG.PACKET.MAX_PAYLOAD_SIZE} bytes each.`);
+            const totalPackets = Math.ceil(this.fileBuffer.length / CONFIG.PACKET.MAX_PAYLOAD_SIZE);
+            Logger.info('TX', `File ready: "${this.fileMeta.name}" (${Utils.formatBytes(this.fileMeta.size)})`);
+            Logger.info('TX', `File will be split into ${totalPackets} packets of up to ${CONFIG.PACKET.MAX_PAYLOAD_SIZE} bytes each.`);
 
-        if (this.txBle.txCharacteristic) {
-            document.getElementById('btn-stream').disabled = false;
+            if (this.txBle.txCharacteristic) {
+                document.getElementById('btn-stream').disabled = false;
+            }
+        } catch (e) {
+            Logger.error('TX', `Failed to process audio: ${e.message}`);
         }
+    }
+
+    async downsampleAudio(file, targetSampleRateStr) {
+        const targetSampleRate = parseInt(targetSampleRateStr);
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const arrayBuffer = await file.arrayBuffer();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        
+        const offlineCtx = new OfflineAudioContext(1, (audioBuffer.duration * targetSampleRate) + 1, targetSampleRate);
+        const source = offlineCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(offlineCtx.destination);
+        source.start();
+        
+        const renderedBuffer = await offlineCtx.startRendering();
+        return this.audioBufferToWav(renderedBuffer);
+    }
+
+    audioBufferToWav(buffer) {
+        const numOfChan = buffer.numberOfChannels,
+              length = buffer.length * numOfChan * 2 + 44,
+              bufferArray = new ArrayBuffer(length),
+              view = new DataView(bufferArray),
+              channels = [],
+              sampleRate = buffer.sampleRate;
+        let offset = 0, pos = 0;
+
+        function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+        function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+        setUint32(0x46464952); // "RIFF"
+        setUint32(length - 8); // file length - 8
+        setUint32(0x45564157); // "WAVE"
+
+        setUint32(0x20746d66); // "fmt " chunk
+        setUint32(16); // length = 16
+        setUint16(1); // PCM (uncompressed)
+        setUint16(numOfChan);
+        setUint32(sampleRate);
+        setUint32(sampleRate * 2 * numOfChan); // avg. bytes/sec
+        setUint16(numOfChan * 2); // block-align
+        setUint16(16); // 16-bit
+
+        setUint32(0x61746164); // "data" - chunk
+        setUint32(length - pos - 4); // chunk length
+
+        for(let i = 0; i < buffer.numberOfChannels; i++)
+            channels.push(buffer.getChannelData(i));
+
+        while(offset < buffer.length) {
+            for(let i = 0; i < numOfChan; i++) {
+                let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+                view.setInt16(pos, sample, true);
+                pos += 2;
+            }
+            offset++;
+        }
+        return bufferArray;
     }
 
     // ─── Transmission ────────────────────────────────────────
