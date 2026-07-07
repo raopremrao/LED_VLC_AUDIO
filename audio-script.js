@@ -39,7 +39,8 @@ class TransferManager {
         document.getElementById('btn-conn-tx').addEventListener('click', () => this.connectTX());
         document.getElementById('btn-conn-rx').addEventListener('click', () => this.connectRX());
 
-        document.getElementById('file-input').addEventListener('change', (e) => this.handleFileSelect(e));
+        document.getElementById('file-input').addEventListener('change', () => this.handleFileSelect());
+        document.getElementById('quality-selector').addEventListener('change', () => this.handleFileSelect());
         document.getElementById('btn-stream').addEventListener('click', () => this.startTransmission());
         document.getElementById('btn-download').addEventListener('click', () => this.downloadReceivedFile());
         document.getElementById('btn-force-download').addEventListener('click', () => this.downloadReceivedFile());
@@ -155,8 +156,9 @@ class TransferManager {
     }
 
     // ─── File Selection ──────────────────────────────────────
-    async handleFileSelect(event) {
-        const file = event.target.files[0];
+    async handleFileSelect() {
+        const fileInput = document.getElementById('file-input');
+        const file = fileInput.files[0];
         if (!file) return;
 
         const quality = document.getElementById('quality-selector').value;
