@@ -17,7 +17,7 @@ export const CONFIG = {
         SYNC1: 0xAA,
         SYNC2: 0x55,
         VERSION: 0x01,
-        MAX_PAYLOAD_SIZE: 240, // Bytes. Chosen to fit within BLE MTU and ESP32 buffers
+        MAX_PAYLOAD_SIZE: 480, // Bytes. Chosen to fit within BLE MTU and ESP32 buffers
         HEADER_SIZE: 9,        // SYNC1(1) + SYNC2(1) + VER(1) + TYPE(1) + FLAGS(1) + SEQ(2) + LEN(2) = 9 bytes
         OVERHEAD: 11,          // 9 bytes header + 2 bytes CRC
     },
@@ -35,7 +35,7 @@ export const CONFIG = {
 
     // Transfer Settings
     TRANSFER: {
-        RX_TIMEOUT_MS: 30000,       
+        RX_TIMEOUT_MS: 30000,
         BASE_TX_DELAY_MS: 1,        // Default delay. Will be auto-calculated if baud changes
         MAX_TX_DELAY_MS: 1500,      // Max delay under backpressure
         MAX_WRITE_QUEUE: 50,       // Max queued BLE writes before backpressure kicks in
